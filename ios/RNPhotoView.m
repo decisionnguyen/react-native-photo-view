@@ -70,8 +70,8 @@
     } else {
         // Zoom in to twice the size
         CGFloat newZoomScale = ((self.maximumZoomScale + self.minimumZoomScale) / 2);
-        CGFloat xsize = self.superview.bounds.size.width / newZoomScale;
-        CGFloat ysize = self.superview.bounds.size.height / newZoomScale;
+        CGFloat xsize = self.bounds.size.width / newZoomScale;
+        CGFloat ysize = self.bounds.size.height / newZoomScale;
         [self zoomToRect:CGRectMake(touchPoint.x - xsize/2, touchPoint.y - ysize/2, xsize, ysize) animated:YES];
     }
 }
@@ -143,24 +143,14 @@
     CGFloat zoomScale = self.minimumZoomScale;
     if (_photoImageView) {
         // Zoom image to fill if the aspect ratios are fairly similar
-        CGFloat screenHeight = self.superview.frame.size.height;
-        
-        if (@available(iOS 11.0, *)) {
-            UIWindow* windown = UIApplication.sharedApplication.keyWindow;
-            CGFloat paddingBottom = windown.safeAreaInsets.bottom;
-            CGFloat paddingTop = windown.safeAreaInsets.top;
-            screenHeight = screenHeight - paddingBottom - paddingTop;
-        }
-        
-        CGSize boundsSize = CGSizeMake(self.superview.bounds.size.width, screenHeight);
+        CGSize boundsSize = self.bounds.size;
         CGSize imageSize = _photoImageView.image.size;
         CGFloat boundsAR = boundsSize.width / boundsSize.height;
         CGFloat imageAR = imageSize.width / imageSize.height;
         CGFloat xScale = boundsSize.width / imageSize.width;    // the scale needed to perfectly fit the image width-wise
         CGFloat yScale = boundsSize.height / imageSize.height;  // the scale needed to perfectly fit the image height-wise
-        // Zooms standard portrait images on a 3.5in screen but not on a 4in screen.
         if (ABS(boundsAR - imageAR) < 0.17) {
-            zoomScale = MAX(xScale, yScale);
+            zoomScale = MIN(xScale, yScale);
             // Ensure we don't zoom in or out too far, just in case
             zoomScale = MIN(MAX(self.minimumZoomScale, zoomScale), self.maximumZoomScale);
         }
@@ -170,8 +160,6 @@
 
 - (void)setMaxMinZoomScalesForCurrentBounds {
 
-    NSLog(@"setMaxMinZoomScalesForCurrentBounds");
-    
     // Reset
     self.maximumZoomScale = 1;
     self.minimumZoomScale = 1;
@@ -184,7 +172,7 @@
     _photoImageView.frame = CGRectMake(0, 0, _photoImageView.frame.size.width, _photoImageView.frame.size.height);
 
     // Sizes
-    CGSize boundsSize = self.superview.bounds.size;
+    CGSize boundsSize = self.bounds.size;
     CGSize imageSize = _photoImageView.image.size;
 
     // Calculate Min
@@ -204,11 +192,10 @@
     // Set min/max zoom
     self.maximumZoomScale = maxScale;
     self.minimumZoomScale = minScale;
-    
+
     // Initial zoom
     self.zoomScale = [self initialZoomScaleWithMinScale];
-//    NSLog(@"setMaxMinZoomScalesForCurrentBounds %f - %f - %f", minScale, _minZoomScale, maxScale, self.zoomScale);
-    
+
     // If we're zooming to fill then centralise
     if (self.zoomScale != minScale) {
 
@@ -231,7 +218,7 @@
 - (void)layoutSubviews {
 
     // Update tap view frame
-    _tapView.frame = self.superview.bounds;
+    _tapView.frame = self.bounds;
 
     // Super
     [super layoutSubviews];
@@ -432,14 +419,14 @@
     self.showsHorizontalScrollIndicator = YES;
 
     // Tap view for background
-    _tapView = [[MWTapDetectingView alloc] initWithFrame:self.superview.bounds];
+    _tapView = [[MWTapDetectingView alloc] initWithFrame:self.bounds];
     _tapView.tapDelegate = self;
     _tapView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _tapView.backgroundColor = [UIColor clearColor];
     [self addSubview:_tapView];
 
     // Image view
-    _photoImageView = [[MWTapDetectingImageView alloc] initWithFrame:self.superview.bounds];
+    _photoImageView = [[MWTapDetectingImageView alloc] initWithFrame:self.bounds];
     _photoImageView.backgroundColor = [UIColor clearColor];
     _photoImageView.contentMode = UIViewContentModeCenter;
     _photoImageView.tapDelegate = self;
